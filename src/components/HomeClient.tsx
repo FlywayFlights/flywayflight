@@ -5,10 +5,11 @@ import Header from "@/components/Header";
 import SearchSection from "@/components/SearchSection";
 import PopularRoutes from "@/components/PopularRoute";
 import ResultsSection from "@/components/ResultSection";
+import type { Flight } from "@/types/flight";
 
 export default function HomeClient() {
-  const [results, setResults] = useState<any[]>([]);
-  const [meta, setMeta] = useState<any>(null);
+  const [results, setResults] = useState<Flight[]>([]);
+  const [meta, setMeta] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
 
   return (
@@ -21,10 +22,10 @@ export default function HomeClient() {
             setResults([]);
             setMeta(null);
           }}
-          onFinish={(res: any, metaObj: any) => {
+          onFinish={(res: unknown[], metaObj: unknown) => {
             setLoading(false);
-            setResults(res || []);
-            setMeta(metaObj || null);
+            setResults((res as Flight[]) || []);
+            setMeta((metaObj as Record<string, unknown>) || null);
           }}
         />
         <PopularRoutes />

@@ -1,6 +1,50 @@
 // app/api/flights/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
+interface Airport {
+  id?: string;
+  time?: string;
+}
+
+interface FlightSegment {
+  airline?: string;
+  airline_logo?: string;
+  flight_number?: string;
+  departure_airport?: Airport;
+  arrival_airport?: Airport;
+  duration?: number;
+  travel_class?: string;
+}
+
+interface Layover {
+  duration?: number;
+  name?: string;
+  id?: string;
+}
+
+interface CarbonEmissions {
+  this_flight?: number;
+  typical_for_this_route?: number;
+  difference_percent?: number;
+}
+
+interface FlightData {
+  flights?: FlightSegment[];
+  price?: number;
+  total_duration?: number;
+  departure_token?: string;
+  carbon_emissions?: CarbonEmissions;
+  layovers?: Layover[];
+}
+
+interface SerpApiResponse {
+  error?: string;
+  best_flights?: FlightData[];
+  other_flights?: FlightData[];
+  search_metadata?: Record<string, unknown>;
+  search_parameters?: Record<string, unknown>;
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   
@@ -47,10 +91,10 @@ export async function GET(request: NextRequest) {
     serpApiUrl.searchParams.set('arrival_id', to.toUpperCase());
     serpApiUrl.searchParams.set('outbound_date', date);
     serpApiUrl.searchParams.set('adults', passengers);
+    serpApiUrl.searchParams.set('type', '2'); // 2 = One way, 1 = Round trip
     serpApiUrl.searchParams.set('currency', 'INR');
     serpApiUrl.searchParams.set('hl', 'en');
     serpApiUrl.searchParams.set('api_key', apiKey);
-    serpApiUrl.searchParams.set('type', '2'); // 2 = One way, 1 = Round trip
 
     const urlForLogging = serpApiUrl.toString().replace(apiKey, 'HIDDEN_KEY');
     console.log('Fetching from SerpAPI:', urlForLogging);
@@ -78,7 +122,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const data = await response.json();
+    const data: SerpApiResponse = await response.json();
     console.log('SerpAPI returned data keys:', Object.keys(data));
     
     // Check for API errors
@@ -110,19 +154,18 @@ export async function GET(request: NextRequest) {
     console.log(`Found ${allFlights.length} flights`);
 
     // Transform flight data to a consistent format
-    const transformedResults = allFlights.map((flight: any, index: number) => {
+    const transformedResults = allFlights.map((flight: FlightData, index: number) => {
       const firstFlight = flight.flights?.[0] || {};
-      const lastFlight = flight.flights?.[flight.flights.length - 1] || {};
 
       return {
         id: `flight-${index}`,
         airline: firstFlight.airline || 'Unknown',
         airline_logo: firstFlight.airline_logo || '',
         price: flight.price ? `₹${flight.price.toLocaleString()}` : 'N/A',
-        duration: `${Math.floor(flight.total_duration / 60)}h ${flight.total_duration % 60}m`,
-        stops: flight.flights?.length - 1 || 0,
+        duration: `${Math.floor((flight.total_duration || 0) / 60)}h ${(flight.total_duration || 0) % 60}m`,
+        stops: (flight.flights?.length || 1) - 1,
         booking_token: flight.departure_token || '',
-        segments: flight.flights?.map((f: any) => ({
+        segments: flight.flights?.map((f: FlightSegment) => ({
           airline: f.airline,
           flight_number: f.flight_number,
           departure_airport: f.departure_airport?.id || '',
@@ -146,10 +189,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Flight API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch flights', details: error.message },
+      { error: 'Failed to fetch flights', details: errorMessage },
       { status: 500 }
     );
   }

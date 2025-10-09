@@ -1,8 +1,9 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import type { SVGProps } from "react";
 
-function PlaneIcon(props: any) {
+function PlaneIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -21,7 +22,7 @@ function PlaneIcon(props: any) {
   );
 }
 
-function UserIcon(props: any) {
+function UserIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

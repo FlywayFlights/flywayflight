@@ -1,10 +1,17 @@
 // components/ResultsSection.tsx
 import FlightCard from "@/components/FlightCard";
 import { Plane, Filter } from "lucide-react";
+import { Flight } from "@/types/flight";
 
-export default function ResultsSection({ results = [], loading = false, meta = null }: any) {
+interface ResultsSectionProps {
+  results?: Flight[];
+  loading?: boolean;
+  meta?: Record<string, unknown> | null;
+}
+
+export default function ResultsSection({ results = [], loading = false }: ResultsSectionProps) {
   if (!loading && results.length === 0) {
-    return null; // Don't show empty results section
+    return null;
   }
 
   return (
@@ -33,7 +40,6 @@ export default function ResultsSection({ results = [], loading = false, meta = n
               </h3>
               
               <div className="space-y-4">
-                {/* Stops Filter */}
                 <div>
                   <h4 className="font-medium mb-2 text-sm">Stops</h4>
                   <div className="space-y-2">
@@ -52,14 +58,12 @@ export default function ResultsSection({ results = [], loading = false, meta = n
                   </div>
                 </div>
 
-                {/* Price Range */}
                 <div className="pt-4 border-t">
                   <h4 className="font-medium mb-2 text-sm">Price Range</h4>
                   <p className="text-xs text-muted-foreground mb-2">₹5,000 - ₹50,000</p>
                   <input type="range" className="w-full" min="5000" max="50000" />
                 </div>
 
-                {/* Airlines */}
                 <div className="pt-4 border-t">
                   <h4 className="font-medium mb-2 text-sm">Airlines</h4>
                   <div className="space-y-2">
@@ -106,7 +110,6 @@ export default function ResultsSection({ results = [], loading = false, meta = n
               </div>
             ) : (
               <>
-                {/* Sort Options */}
                 <div className="flex items-center justify-between mb-6 bg-card rounded-lg p-4 border">
                   <div className="text-sm font-medium">
                     Showing {results.length} result{results.length !== 1 ? 's' : ''}
@@ -120,9 +123,8 @@ export default function ResultsSection({ results = [], loading = false, meta = n
                   </select>
                 </div>
 
-                {/* Flight Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {results.map((flight: any) => (
+                  {results.map((flight) => (
                     <FlightCard key={flight.id} flight={flight} />
                   ))}
                 </div>

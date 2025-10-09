@@ -6,7 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Search, MapPin, Calendar, Users } from "lucide-react";
 import airports from "@/lib/airport.json";
 
-export default function SearchSection({ onStart, onFinish }: any) {
+interface Airport {
+  code: string;
+  city: string;
+  name: string;
+}
+
+interface SearchSectionProps {
+  onStart?: () => void;
+  onFinish?: (results: unknown[], meta: unknown) => void;
+}
+
+export default function SearchSection({ onStart, onFinish }: SearchSectionProps) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [date, setDate] = useState(() => {
@@ -16,12 +27,12 @@ export default function SearchSection({ onStart, onFinish }: any) {
   });
   const [passengers, setPassengers] = useState("1");
   const [error, setError] = useState<string | null>(null);
-  const [fromSuggestions, setFromSuggestions] = useState<any[]>([]);
-  const [toSuggestions, setToSuggestions] = useState<any[]>([]);
+  const [fromSuggestions, setFromSuggestions] = useState<Airport[]>([]);
+  const [toSuggestions, setToSuggestions] = useState<Airport[]>([]);
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
   const [showToSuggestions, setShowToSuggestions] = useState(false);
 
-  function guessIata(input: string) {
+  function guessIata(input: string): string {
     if (!input) return "";
     
     // Extract just the airport code if format is "CODE - City"
@@ -34,13 +45,13 @@ export default function SearchSection({ onStart, onFinish }: any) {
     
     // If user typed code already (3 letters)
     if (q.length === 3) {
-      const asCode = airports.find((a: any) => a.code.toUpperCase() === q);
+      const asCode = (airports as Airport[]).find((a) => a.code.toUpperCase() === q);
       if (asCode) return asCode.code;
     }
     
     // Search by city or name (loose match)
-    const byName = airports.find(
-      (a: any) =>
+    const byName = (airports as Airport[]).find(
+      (a) =>
         a.city.toUpperCase().includes(q) ||
         a.name.toUpperCase().includes(q) ||
         a.code.toUpperCase() === q
@@ -52,7 +63,7 @@ export default function SearchSection({ onStart, onFinish }: any) {
   function handleFromInput(value: string) {
     setFrom(value);
     if (value.length >= 2) {
-      const filtered = airports.filter((a: any) => 
+      const filtered = (airports as Airport[]).filter((a) => 
         a.city.toLowerCase().includes(value.toLowerCase()) ||
         a.code.toLowerCase().includes(value.toLowerCase()) ||
         a.name.toLowerCase().includes(value.toLowerCase())
@@ -67,7 +78,7 @@ export default function SearchSection({ onStart, onFinish }: any) {
   function handleToInput(value: string) {
     setTo(value);
     if (value.length >= 2) {
-      const filtered = airports.filter((a: any) => 
+      const filtered = (airports as Airport[]).filter((a) => 
         a.city.toLowerCase().includes(value.toLowerCase()) ||
         a.code.toLowerCase().includes(value.toLowerCase()) ||
         a.name.toLowerCase().includes(value.toLowerCase())
@@ -79,17 +90,17 @@ export default function SearchSection({ onStart, onFinish }: any) {
     }
   }
 
-  function selectFrom(airport: any) {
+  function selectFrom(airport: Airport) {
     setFrom(`${airport.code} - ${airport.city}`);
     setShowFromSuggestions(false);
   }
 
-  function selectTo(airport: any) {
+  function selectTo(airport: Airport) {
     setTo(`${airport.code} - ${airport.city}`);
     setShowToSuggestions(false);
   }
 
-  async function handleSubmit(e: any) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     onStart?.();
@@ -147,9 +158,10 @@ export default function SearchSection({ onStart, onFinish }: any) {
         setError("No flights found for this route. Try different dates or airports.");
       }
 
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Network error. Please try again.";
       console.error('Search error:', err);
-      setError(err.message || "Network error. Please try again.");
+      setError(errorMessage);
       onFinish?.([], null);
     }
   }

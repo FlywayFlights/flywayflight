@@ -1,8 +1,15 @@
 // components/ResultsSection.tsx
 import FlightCard from "@/components/FlightCard";
 import { Plane, Filter } from "lucide-react";
+import type { Flight } from "@/types/flight";
 
-export default function ResultsSection({ results = [], loading = false, meta = null }: any) {
+interface ResultsSectionProps {
+  results?: Flight[];
+  loading?: boolean;
+  meta?: Record<string, unknown> | null;
+}
+
+export default function ResultsSection({ results = [], loading = false, meta = null }: ResultsSectionProps) {
   if (!loading && results.length === 0) {
     return null; // Don't show empty results section
   }
@@ -122,7 +129,7 @@ export default function ResultsSection({ results = [], loading = false, meta = n
 
                 {/* Flight Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {results.map((flight: any) => (
+                  {results.map((flight: Flight) => (
                     <FlightCard key={flight.id} flight={flight} />
                   ))}
                 </div>

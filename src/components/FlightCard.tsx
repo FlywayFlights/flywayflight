@@ -3,11 +3,17 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Plane, Clock, Calendar } from "lucide-react";
+import { Plane, Clock } from "lucide-react";
+import Image from "next/image";
+import { Flight, BookingOption } from "@/types/flight";
 
-export default function FlightCard({ flight }: any) {
+interface FlightCardProps {
+  flight: Flight;
+}
+
+export default function FlightCard({ flight }: FlightCardProps) {
   const [loading, setLoading] = useState(false);
-  const [bookingOptions, setBookingOptions] = useState<any[]>([]);
+  const [bookingOptions, setBookingOptions] = useState<BookingOption[]>([]);
   const [showOptions, setShowOptions] = useState(false);
 
   async function viewBookingOptions() {
@@ -36,9 +42,10 @@ export default function FlightCard({ flight }: any) {
       }
       
       setLoading(false);
-    } catch (err: any) {
+    } catch (err) {
       setLoading(false);
-      alert(`Failed to fetch booking options: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      alert(`Failed to fetch booking options: ${errorMessage}`);
     }
   }
 
@@ -52,7 +59,7 @@ export default function FlightCard({ flight }: any) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {flight.airline_logo ? (
-              <img 
+              <Image 
                 src={flight.airline_logo} 
                 width={40} 
                 height={40} 
@@ -72,7 +79,7 @@ export default function FlightCard({ flight }: any) {
             </div>
           </div>
           <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
-            {flight.stops === 0 ? "Non-stop" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
+            {flight.stops === 0 ? "Non-stop" : `${flight.stops} stop${(flight.stops || 0) > 1 ? "s" : ""}`}
           </div>
         </div>
 
@@ -111,7 +118,7 @@ export default function FlightCard({ flight }: any) {
         </div>
 
         {/* Carbon Emissions */}
-        {flight.carbon_emissions && (
+        {flight.carbon_emissions && flight.carbon_emissions.this_flight && (
           <div className="mt-3 text-xs text-muted-foreground">
             🌱 {flight.carbon_emissions.this_flight}g CO₂ emissions
           </div>
@@ -130,9 +137,8 @@ export default function FlightCard({ flight }: any) {
         ) : (
           <div className="w-full space-y-2">
             <div className="font-semibold mb-2">Available Booking Options:</div>
-            {bookingOptions.slice(0, 3).map((option: any, idx: number) => (
-              
-                <a
+            {bookingOptions.slice(0, 3).map((option, idx) => (
+              <a
                 key={idx}
                 href={option.link || "#"}
                 target="_blank"
@@ -146,9 +152,7 @@ export default function FlightCard({ flight }: any) {
                   </span>
                 </div>
               </a>
-            
             ))}
-        
             <Button 
               variant="outline" 
               size="sm" 

@@ -1,6 +1,20 @@
 // app/api/flights/booking/route.ts
 import { NextResponse } from "next/server";
 
+interface BookingOption {
+  source?: string;
+  price?: number;
+  link?: string;
+  type?: string;
+}
+
+interface SerpApiBookingResponse {
+  error?: string;
+  booking_options?: BookingOption[];
+  search_metadata?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const token = url.searchParams.get("token");
@@ -41,7 +55,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const json = await res.json();
+    const json: SerpApiBookingResponse = await res.json();
 
     // Check for API errors
     if (json.error) {
@@ -52,7 +66,7 @@ export async function GET(req: Request) {
     }
 
     // Transform booking options to a consistent format
-    const bookingOptions = (json.booking_options || []).map((option: any, index: number) => ({
+    const bookingOptions = (json.booking_options || []).map((option: BookingOption, index: number) => ({
       id: `booking-${index}`,
       source: option.source || 'Unknown',
       price: option.price ? `₹${option.price}` : 'N/A',
@@ -68,10 +82,11 @@ export async function GET(req: Request) {
       raw: json // Keep raw data for debugging
     });
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Booking API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch booking options', details: error.message },
+      { error: 'Failed to fetch booking options', details: errorMessage },
       { status: 500 }
     );
   }
