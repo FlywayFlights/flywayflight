@@ -1,30 +1,21 @@
 [
-  { "code": "DEL", "city": "New Delhi", "name": "Indira Gandhi International", "type": "International" },
-  { "code": "BOM", "city": "Mumbai", "name": "Chhatrapati Shivaji Maharaj International", "type": "International" },
-  { "code": "BLR", "city": "Bengaluru", "name": "Kempegowda International", "type": "International" },
-  { "code": "MAA", "city": "Chennai", "name": "Chennai International", "type": "International" },
-  { "code": "HYD", "city": "Hyderabad", "name": "Rajiv Gandhi International", "type": "International" },
-  { "code": "CCU", "city": "Kolkata", "name": "Netaji Subhash Chandra Bose International", "type": "International" },
-  { "code": "AMD", "city": "Ahmedabad", "name": "Sardar Vallabhbhai Patel International", "type": "International" },
-  { "code": "COK", "city": "Kochi", "name": "Cochin International", "type": "International" },
-  { "code": "GOI", "city": "Goa", "name": "Dabolim (Goa) Airport", "type": "International (Civil enclave)" },
-  { "code": "PNQ", "city": "Pune", "name": "Pune Airport", "type": "International / Domestic (Civil enclave)" },
-  { "code": "JAI", "city": "Jaipur", "name": "Jaipur International", "type": "International" },
-  { "code": "SXR", "city": "Srinagar", "name": "Srinagar International", "type": "International (Civil enclave)" },
-  { "code": "VTZ", "city": "Visakhapatnam", "name": "Visakhapatnam International", "type": "International / Domestic" },
-  { "code": "TRV", "city": "Thiruvananthapuram", "name": "Thiruvananthapuram International", "type": "International" },
-  { "code": "ATQ", "city": "Amritsar", "name": "Sri Guru Ram Dass Jee International", "type": "International" },
-  { "code": "BBI", "city": "Bhubaneswar", "name": "Biju Patnaik International", "type": "International" },
-  { "code": "GAU", "city": "Guwahati", "name": "Lokpriya Gopinath Bordoloi International", "type": "International" },
-  { "code": "IDR", "city": "Indore", "name": "Devi Ahilya Bai Holkar Airport", "type": "International / Domestic" },
-  { "code": "CNN", "city": "Kannur", "name": "Kannur International", "type": "International" },
-  { "code": "MYY", "city": "Myingyan", "name": "Myingyan Domestic", "type": "Domestic" }, 
-      
-  { "code": "JFK", "city": "New York", "name": "John F. Kennedy Intl.", "type": "International" },
-  { "code": "LHR", "city": "London", "name": "Heathrow", "type": "International" },
-  { "code": "LAX", "city": "Los Angeles", "name": "Los Angeles Intl.", "type": "International" },
-  { "code": "DXB", "city": "Dubai", "name": "Dubai Intl.", "type": "International" },
-  { "code": "SIN", "city": "Singapore", "name": "Changi", "type": "International" },
-  { "code": "SYD", "city": "Sydney", "name": "Kingsford Smith", "type": "International" },
-  { "code": "NRT", "city": "Tokyo", "name": "Narita", "type": "International" }
+  {
+    "iata": "DEL",
+    "city": "New Delhi",
+    "name": "Indira Gandhi International Airport",
+    "country": "India"
+  },
+  {
+    "iata": "BOM",
+    "city": "Mumbai",
+    "name": "Chhatrapati Shivaji Maharaj International Airport",
+    "country": "India"
+  },
+  {
+    "iata": "AMD",
+    "city": "Ahmedabad",
+    "name": "Sardar Vallabhbhai Patel International Airport",
+    "country": "India"
+  }
 ]
+  

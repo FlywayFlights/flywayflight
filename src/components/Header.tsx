@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { SVGProps } from "react";
@@ -50,13 +49,27 @@ export default function Header() {
           <PlaneIcon className="w-6 h-6" />
           <span className="text-lg font-bold">BoofLight</span>
         </Link>
+
         <nav className="hidden md:flex items-center gap-4">
-          <Link href="#" className="hover:underline" prefetch={false}>Flights</Link>
-          <Link href="#" className="hover:underline" prefetch={false}>Hotels</Link>
-          <Link href="#" className="hover:underline" prefetch={false}>Packages</Link>
-          <Link href="#" className="hover:underline" prefetch={false}>Deals</Link>
+          <Link href="#" className="hover:underline" prefetch={false}>
+            Flights
+          </Link>
+          <Link href="#" className="hover:underline" prefetch={false}>
+            Hotels
+          </Link>
+          <Link href="#" className="hover:underline" prefetch={false}>
+            Packages
+          </Link>
+          <Link href="#" className="hover:underline" prefetch={false}>
+            Deals
+          </Link>
         </nav>
-        <Button variant="outline">
+
+        {/* FIXED BUTTON */}
+        <Button
+          variant="outline"
+          className="bg-transparent border-white text-white hover:bg-white hover:text-primary"
+        >
           <UserIcon className="w-4 h-4 mr-2" />
           Sign In
         </Button>
