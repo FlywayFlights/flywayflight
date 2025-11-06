@@ -3,6 +3,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plane, Clock } from "lucide-react";
 import Image from "next/image";
 import { Flight, BookingOption } from "@/types/flight";
@@ -15,6 +16,7 @@ export default function FlightCard({ flight }: FlightCardProps) {
   const [loading, setLoading] = useState(false);
   const [bookingOptions, setBookingOptions] = useState<BookingOption[]>([]);
   const [showOptions, setShowOptions] = useState(false);
+  const router = useRouter();
 
   async function viewBookingOptions() {
     if (!flight.booking_token) {
@@ -51,6 +53,20 @@ export default function FlightCard({ flight }: FlightCardProps) {
 
   const seg = flight.segments?.[0] || {};
   const lastSeg = flight.segments?.[flight.segments?.length - 1] || seg;
+
+  function handleBook() {
+    const params = new URLSearchParams({
+      airline: flight.airline || "",
+      from: seg.departure_airport || "",
+      to: lastSeg.arrival_airport || "",
+      date: seg.departure_time?.slice(0, 10) || "",
+      time: seg.departure_time?.slice(11, 16) || "",
+      duration: flight.duration || "",
+      price: flight.price || "",
+      flight_number: seg.flight_number || "",
+    });
+    router.push(`/booking?${params.toString()}`);
+  }
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -125,15 +141,24 @@ export default function FlightCard({ flight }: FlightCardProps) {
         )}
       </CardContent>
 
-      <CardFooter className="p-6 pt-0">
+      <CardFooter className="p-6 pt-0 flex gap-3">
         {!showOptions ? (
-          <Button 
-            className="w-full" 
-            onClick={viewBookingOptions} 
-            disabled={loading || !flight.booking_token}
-          >
-            {loading ? "Loading..." : "View Booking Options"}
-          </Button>
+          <>
+            <Button 
+              className="flex-1" 
+              onClick={handleBook}
+            >
+              Book
+            </Button>
+            <Button 
+              variant="outline"
+              className="flex-1" 
+              onClick={viewBookingOptions} 
+              disabled={loading || !flight.booking_token}
+            >
+              {loading ? "Loading..." : "View Options"}
+            </Button>
+          </>
         ) : (
           <div className="w-full space-y-2">
             <div className="font-semibold mb-2">Available Booking Options:</div>
