@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useBooking } from "@/context/BookingContext";
+import { useBooking, Ticket } from "@/context/BookingContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ function generateBookingNo() {
   return booking;
 }
 
-export default function BookingClient({ summary }: { summary: any }) {
+export default function BookingClient({ summary }: { summary: Ticket }) {
   const router = useRouter();
   const { setTicket } = useBooking();
   const [form, setForm] = useState({
