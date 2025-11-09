@@ -1,26 +1,27 @@
+// src/app/booking/page.tsx
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import BookingClient from "@/components/BookingClient";
+import { useBooking } from "@/context/BookingContext";
 
-export default function BookingPage({
-  searchParams,
-}: {
-  searchParams: Record<string, string | string[] | undefined>;
-}) {
-  const get = (k: string) => {
-    const v = searchParams?.[k];
-    return Array.isArray(v) ? v[0] : v || "";
-  };
+export default function BookingPage() {
+  const { ticket } = useBooking();
+  const router = useRouter();
 
-  const summary = {
-    airline: get("airline"),
-    from: get("from"),
-    to: get("to"),
-    date: get("date"),
-    time: get("time"),
-    duration: get("duration"),
-    price: get("price"),
-  };
+  useEffect(() => {
+    if (!ticket) router.push("/"); // safe-guard if someone opens /booking directly
+  }, [ticket, router]);
 
-  return <BookingClient summary={summary} />;
+  if (!ticket) {
+    return (
+      <div className="flex items-center justify-center h-screen text-muted-foreground">
+        Loading booking details...
+      </div>
+    );
+  }
+
+  // Pass ticket as summary prop (your BookingClient expects summary)
+  return <BookingClient summary={ticket} />;
 }
-
-

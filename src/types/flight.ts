@@ -41,4 +41,6 @@ export interface BookingOption {
   price: string;
   link: string;
   type: string;
+  provider: string;
+  fare_type: string;
 }

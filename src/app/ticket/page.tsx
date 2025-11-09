@@ -1,31 +1,21 @@
+"use client";
+import { useBooking } from "@/context/BookingContext";
 import TicketClient from "@/components/TicketClient";
+import { useEffect, ComponentType } from "react";
+import { useRouter } from "next/navigation";
 
-export default function TicketPage({
-  searchParams,
-}: {
-  searchParams: Record<string, string | string[] | undefined>;
-}) {
-  const get = (k: string) => {
-    const v = searchParams?.[k];
-    return Array.isArray(v) ? v[0] : v || "";
-  };
+export default function TicketPage() {
+  const { ticket } = useBooking();
+  const router = useRouter();
 
-  const ticket = {
-    name: get("name"),
-    gender: get("gender"),
-    age: get("age"),
-    phone: get("phone"),
-    email: get("email"),
-    airline: get("airline"),
-    flight_number: get("flight_number"),
-    from: get("from"),
-    to: get("to"),
-    date: get("date"),
-    time: get("time"),
-    price: get("price"),
-  };
+  // Cast the imported component to a ComponentType that accepts a `ticket` prop
+  const TypedTicketClient = TicketClient as ComponentType<{ ticket: any }>;
 
-  return <TicketClient ticket={ticket} />;
+  useEffect(() => {
+    if (!ticket) router.push("/"); // Redirect if no data
+  }, [ticket, router]);
+
+  if (!ticket) return <p>Loading ticket...</p>;
+
+  return <TypedTicketClient ticket={ticket} />;
 }
-
-

@@ -1,5 +1,5 @@
-// components/FlightCard.tsx
 "use client";
+
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Plane, Clock } from "lucide-react";
 import Image from "next/image";
 import { Flight, BookingOption } from "@/types/flight";
+import { useBooking } from "@/context/BookingContext";
 
 interface FlightCardProps {
   flight: Flight;
@@ -17,36 +18,36 @@ export default function FlightCard({ flight }: FlightCardProps) {
   const [bookingOptions, setBookingOptions] = useState<BookingOption[]>([]);
   const [showOptions, setShowOptions] = useState(false);
   const router = useRouter();
+  const { setTicket } = useBooking();
 
   async function viewBookingOptions() {
     if (!flight.booking_token) {
       alert("No booking token available for this flight.");
       return;
     }
-    
+
     setLoading(true);
     try {
-      const res = await fetch(`/api/flights/booking?token=${encodeURIComponent(flight.booking_token)}`);
+      const res = await fetch(
+        `/api/flights/booking?token=${encodeURIComponent(flight.booking_token)}`
+      );
       const json = await res.json();
-      
       if (json.error) {
         alert(`Error: ${json.error}`);
         setLoading(false);
         return;
       }
-
-      if (json.booking_options && json.booking_options.length > 0) {
+      if (json.booking_options?.length) {
         setBookingOptions(json.booking_options);
         setShowOptions(true);
-        console.log("Booking options:", json.booking_options);
       } else {
         alert("No booking options available for this flight.");
       }
-      
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      const errorMessage =
+        err instanceof Error ? err.message : "Unknown error occurred";
       alert(`Failed to fetch booking options: ${errorMessage}`);
     }
   }
@@ -55,7 +56,7 @@ export default function FlightCard({ flight }: FlightCardProps) {
   const lastSeg = flight.segments?.[flight.segments?.length - 1] || seg;
 
   function handleBook() {
-    const params = new URLSearchParams({
+    const summary = {
       airline: flight.airline || "",
       from: seg.departure_airport || "",
       to: lastSeg.arrival_airport || "",
@@ -64,96 +65,72 @@ export default function FlightCard({ flight }: FlightCardProps) {
       duration: flight.duration || "",
       price: flight.price || "",
       flight_number: seg.flight_number || "",
-    });
-    router.push(`/booking?${params.toString()}`);
+    };
+
+    setTicket(summary);
+    router.push("/booking");
   }
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-all duration-300">
       <CardContent className="p-6">
-        {/* Airline Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {flight.airline_logo ? (
-              <Image 
-                src={flight.airline_logo} 
-                width={40} 
-                height={40} 
-                alt={flight.airline || "airline"} 
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                <Plane className="w-5 h-5 text-primary" />
-              </div>
-            )}
+            <Image
+              src={
+                flight.airline_logo ||
+                "https://upload.wikimedia.org/wikipedia/commons/a/a0/Airplane_silhouette.svg"
+              }
+              alt={flight.airline || "Airline"}
+              width={40}
+              height={40}
+              className="rounded-md"
+            />
             <div>
-              <div className="font-semibold text-lg">{flight.airline || "Unknown Airline"}</div>
-              {seg.flight_number && (
-                <div className="text-xs text-muted-foreground">{seg.flight_number}</div>
-              )}
+              <p className="font-semibold text-lg">{flight.airline}</p>
+              <p className="text-sm text-muted-foreground">
+                Flight {seg.flight_number || "—"}
+              </p>
             </div>
           </div>
-          <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
-            {flight.stops === 0 ? "Non-stop" : `${flight.stops} stop${(flight.stops || 0) > 1 ? "s" : ""}`}
+          <div className="text-right">
+            <p className="text-xl font-semibold text-primary">
+              ₹{flight.price}
+            </p>
+            <p className="text-xs text-muted-foreground">per traveller</p>
           </div>
         </div>
 
-        {/* Flight Times */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold">{seg.departure_time || "—"}</div>
-            <div className="text-sm font-medium text-muted-foreground">{seg.departure_airport || "—"}</div>
+        <div className="flex items-center justify-between mt-5 text-sm text-muted-foreground">
+          <div className="flex flex-col items-center">
+            <p className="text-lg font-bold text-foreground">
+              {seg.departure_airport}
+            </p>
+            <p>{seg.departure_time?.slice(11, 16)}</p>
           </div>
-
-          <div className="flex-1 mx-4">
-            <div className="relative">
-              <div className="border-t-2 border-dashed border-muted-foreground/30"></div>
-              <Plane className="w-4 h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary rotate-90" />
-            </div>
-            <div className="text-xs text-center text-muted-foreground mt-1 flex items-center justify-center gap-1">
-              <Clock className="w-3 h-3" />
-              {flight.duration || "—"}
-            </div>
+          <div className="flex flex-col items-center">
+            <Plane className="w-5 h-5 mb-1 text-primary" />
+            <span>{flight.duration || "—"}</span>
           </div>
-
-          <div className="text-center">
-            <div className="text-2xl font-bold">{lastSeg.arrival_time || "—"}</div>
-            <div className="text-sm font-medium text-muted-foreground">{lastSeg.arrival_airport || "—"}</div>
+          <div className="flex flex-col items-center">
+            <p className="text-lg font-bold text-foreground">
+              {lastSeg.arrival_airport}
+            </p>
+            <p>{lastSeg.arrival_time?.slice(11, 16)}</p>
           </div>
         </div>
-
-        {/* Additional Info */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          {seg.travel_class && (
-            <div className="text-sm text-muted-foreground">
-              Class: <span className="font-medium text-foreground">{seg.travel_class}</span>
-            </div>
-          )}
-          <div className="text-3xl font-bold text-primary">{flight.price || "—"}</div>
-        </div>
-
-        {/* Carbon Emissions */}
-        {flight.carbon_emissions && flight.carbon_emissions.this_flight && (
-          <div className="mt-3 text-xs text-muted-foreground">
-            🌱 {flight.carbon_emissions.this_flight}g CO₂ emissions
-          </div>
-        )}
       </CardContent>
 
       <CardFooter className="p-6 pt-0 flex gap-3">
         {!showOptions ? (
           <>
-            <Button 
-              className="flex-1" 
-              onClick={handleBook}
-            >
+            <Button className="flex-1" onClick={handleBook}>
               Book
             </Button>
-            <Button 
+            <Button
               variant="outline"
-              className="flex-1" 
-              onClick={viewBookingOptions} 
+              className="flex-1"
+              onClick={viewBookingOptions}
               disabled={loading || !flight.booking_token}
             >
               {loading ? "Loading..." : "View Options"}
@@ -161,26 +138,23 @@ export default function FlightCard({ flight }: FlightCardProps) {
           </>
         ) : (
           <div className="w-full space-y-2">
-            <div className="font-semibold mb-2">Available Booking Options:</div>
-            {bookingOptions.slice(0, 3).map((option, idx) => (
-              <a
-                key={idx}
-                href={option.link || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block p-3 border rounded-lg hover:bg-muted transition-colors"
+            {bookingOptions.map((option, i) => (
+              <div
+                key={i}
+                className="border rounded-md p-3 flex justify-between items-center"
               >
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{option.source || `Option ${idx + 1}`}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {option.price || flight.price}
-                  </span>
+                <div>
+                  <p className="font-medium">{option.provider}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {option.fare_type}
+                  </p>
                 </div>
-              </a>
+                <p className="font-semibold text-primary">₹{option.price}</p>
+              </div>
             ))}
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="w-full mt-2"
               onClick={() => setShowOptions(false)}
             >
