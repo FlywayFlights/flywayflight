@@ -40,8 +40,15 @@ export default function TicketClient() {
   // Helper to detect platforms
   const isMobile = () =>
     /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isIOS = () =>
-    /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  const isIOS = () => {
+    interface WindowWithMSStream extends Window {
+      MSStream?: unknown;
+    }
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(window as WindowWithMSStream).MSStream
+    );
+  };
 
   // New robust download handler
   async function handleDownload() {
@@ -59,22 +66,43 @@ export default function TicketClient() {
 
     // Mobile path: build PDF
     try {
-      // render element to canvas
+      // render element to canvas with higher quality
       const canvas = await html2canvas(ticketElement, {
-        scale: 2,
+        scale: 3, // Increased scale for better quality
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
+        allowTaint: true,
+        foreignObjectRendering: true,
       });
 
       const imgData = canvas.toDataURL("image/png");
 
-      // create jsPDF and add image
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      // create jsPDF and add image with optimized quality
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        compress: true, // Enable compression for smaller file size
+      });
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      // Calculate dimensions to fit the page with margins
+      const margin = 10; // 10mm margin
+      const pdfWidth = pdf.internal.pageSize.getWidth() - 2 * margin;
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const xPosition = margin; // Center horizontally
+      const yPosition = margin; // Start from top with margin
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        xPosition,
+        yPosition,
+        pdfWidth,
+        pdfHeight,
+        undefined,
+        "FAST"
+      );
 
       // try to get a blob from jsPDF (works in newer jsPDF versions)
       let blob: Blob | null = null;
@@ -140,6 +168,9 @@ export default function TicketClient() {
     );
   }
 
+  // TypeScript now knows ticket is not null after this point
+  const safeTicket = ticket;
+
   return (
     <section className="py-12 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 min-h-screen">
       <div className="container mx-auto px-4 md:px-6">
@@ -170,7 +201,7 @@ export default function TicketClient() {
                     </div>
                     <div>
                       <div className="text-2xl font-bold tracking-wide">
-                        {ticket.airline || "Airways"}
+                        {safeTicket.airline || "Airways"}
                       </div>
                       <div className="text-xs text-blue-200 tracking-wider">
                         ELECTRONIC TICKET
@@ -226,13 +257,13 @@ export default function TicketClient() {
                         DEPARTURE
                       </div>
                       <div className="text-4xl font-bold mb-1">
-                        {ticket.from || "DEL"}
+                        {safeTicket.from || "DEL"}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {ticket.date || "2025-11-16"}
+                        {safeTicket.date || "2025-11-16"}
                       </div>
                       <div className="text-2xl font-semibold mt-2">
-                        {ticket.time || "21:20"}
+                        {safeTicket.time || "21:20"}
                       </div>
                     </div>
 
@@ -248,12 +279,12 @@ export default function TicketClient() {
                         <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                       </div>
                       <div className="text-sm font-medium">
-                        {ticket.duration || "2h 30m"}
+                        {safeTicket.duration || "2h 30m"}
                       </div>
                       <div className="text-xs text-green-600 font-medium mt-1">
-                        {ticket.stops === 0
+                        {safeTicket.stops === 0
                           ? "DIRECT FLIGHT"
-                          : `${ticket.stops} STOP(S)`}
+                          : `${safeTicket.stops} STOP(S)`}
                       </div>
                     </div>
 
@@ -262,13 +293,15 @@ export default function TicketClient() {
                         ARRIVAL
                       </div>
                       <div className="text-4xl font-bold mb-1">
-                        {ticket.to || "AMD"}
+                        {safeTicket.to || "AMD"}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {ticket.arrivalDate || ticket.date || "2025-11-16"}
+                        {safeTicket.arrivalDate ||
+                          safeTicket.date ||
+                          "2025-11-16"}
                       </div>
                       <div className="text-2xl font-semibold mt-2">
-                        {ticket.arrivalTime || "23:50"}
+                        {safeTicket.arrivalTime || "23:50"}
                       </div>
                     </div>
                   </div>
@@ -288,7 +321,7 @@ export default function TicketClient() {
                             Name
                           </span>
                           <span className="font-semibold">
-                            {ticket.name || "—"}
+                            {safeTicket.name || "—"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b">
@@ -296,7 +329,7 @@ export default function TicketClient() {
                             Gender
                           </span>
                           <span className="font-semibold">
-                            {ticket.gender || "—"}
+                            {safeTicket.gender || "—"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b">
@@ -304,7 +337,7 @@ export default function TicketClient() {
                             Age
                           </span>
                           <span className="font-semibold">
-                            {ticket.age || "—"}
+                            {safeTicket.age || "—"}
                           </span>
                         </div>
                       </div>
@@ -320,7 +353,7 @@ export default function TicketClient() {
                             Phone
                           </span>
                           <span className="font-semibold">
-                            {ticket.phone || "—"}
+                            {safeTicket.phone || "—"}
                           </span>
                         </div>
                         <div className="flex justify-between items-start py-2 border-b">
@@ -328,7 +361,7 @@ export default function TicketClient() {
                             Email
                           </span>
                           <span className="font-semibold text-right text-sm break-all max-w-[200px]">
-                            {ticket.email || "—"}
+                            {safeTicket.email || "—"}
                           </span>
                         </div>
                       </div>
@@ -347,7 +380,7 @@ export default function TicketClient() {
                             Flight Number
                           </span>
                           <span className="font-semibold font-mono">
-                            {ticket.flight_number || "6E 7138"}
+                            {safeTicket.flight_number || "6E 7138"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b">
@@ -363,7 +396,7 @@ export default function TicketClient() {
                             Class
                           </span>
                           <span className="font-semibold">
-                            {ticket.class || "Economy"}
+                            {safeTicket.class || "Economy"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b">
@@ -371,7 +404,7 @@ export default function TicketClient() {
                             Seat
                           </span>
                           <span className="font-semibold">
-                            {ticket.seat || "Will be assigned at check-in"}
+                            {safeTicket.seat || "Will be assigned at check-in"}
                           </span>
                         </div>
                       </div>
@@ -391,7 +424,7 @@ export default function TicketClient() {
                           </span>
                         </div>
                         <div className="text-3xl font-bold text-green-700 dark:text-green-400">
-                          {ticket.price || "₹8,502"}
+                          {safeTicket.price || "₹8,502"}
                         </div>
                       </div>
                     </div>
