@@ -95,7 +95,7 @@ export default function FlightCard({ flight }: FlightCardProps) {
           </div>
           <div className="text-right">
             <p className="text-xl font-semibold text-primary">
-              ₹{flight.price}
+              {flight.price}
             </p>
             <p className="text-xs text-muted-foreground">per traveller</p>
           </div>
