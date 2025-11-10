@@ -37,27 +37,96 @@ export default function TicketClient() {
     setTicketNumber(ticket?.ticketNumber || generateTicketNumber());
   }, [ticket]);
 
-  // 📱 Detect mobile and handle download accordingly
+  // Helper to detect platforms
+  const isMobile = () =>
+    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isIOS = () =>
+    /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+  // New robust download handler
   async function handleDownload() {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
     const ticketElement = document.getElementById("ticket-section");
-    if (!ticketElement) return;
+    if (!ticketElement) {
+      console.warn("Ticket element not found");
+      return;
+    }
 
-    if (isMobile) {
+    // Desktop path: print (keeps current behavior)
+    if (!isMobile()) {
+      window.print();
+      return;
+    }
+
+    // Mobile path: build PDF
+    try {
+      // render element to canvas
       const canvas = await html2canvas(ticketElement, {
         scale: 2,
+        useCORS: true,
         backgroundColor: "#ffffff",
+        logging: false,
       });
+
       const imgData = canvas.toDataURL("image/png");
+
+      // create jsPDF and add image
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save("BooFlight-Eticket.pdf");
-    } else {
-      window.print();
+
+      // try to get a blob from jsPDF (works in newer jsPDF versions)
+      let blob: Blob | null = null;
+      try {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        blob = pdf.output("blob");
+      } catch (err) {
+        // fallback: convert dataurl to blob
+        const dataUrl = pdf.output("datauristring");
+        // datauristring returns "data:application/pdf;base64,...."
+        const base64 = dataUrl.split(",")[1];
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        blob = new Blob([byteArray], { type: "application/pdf" });
+      }
+
+      if (!blob) throw new Error("Failed to create PDF blob");
+
+      const blobUrl = URL.createObjectURL(blob);
+      // iOS browsers do not reliably download files – open in new tab so user can save
+      if (isIOS()) {
+        window.open(blobUrl, "_blank");
+        // revoke after a short delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 20000);
+        return;
+      }
+
+      // Other mobile browsers (Android Chrome) should handle a direct download via anchor click
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = "BoogFlight-Eticket.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      // free memory
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (error) {
+      console.error("PDF generation/download failed", error);
+      // final fallback: open print dialog (some mobile browsers handle this better)
+      try {
+        window.print();
+      } catch (e) {
+        alert(
+          "Unable to download ticket on this device. Try 'Share' or 'Print' from your browser."
+        );
+      }
     }
   }
 
@@ -205,17 +274,16 @@ export default function TicketClient() {
                   </div>
                 </div>
 
-                {/* Passenger + Flight Details */}
+                {/* Passenger and Flight Details */}
                 <div className="grid md:grid-cols-2 gap-8 px-8 py-8 border-b">
-                  {/* Left Column */}
+                  {/* Left Column - Passenger Info */}
                   <div className="space-y-6">
-                    {/* Passenger Info */}
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                         Passenger Information
                       </div>
                       <div className="space-y-3">
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-center py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Name
                           </span>
@@ -223,7 +291,7 @@ export default function TicketClient() {
                             {ticket.name || "—"}
                           </span>
                         </div>
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-center py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Gender
                           </span>
@@ -231,7 +299,7 @@ export default function TicketClient() {
                             {ticket.gender || "—"}
                           </span>
                         </div>
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-center py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Age
                           </span>
@@ -242,13 +310,12 @@ export default function TicketClient() {
                       </div>
                     </div>
 
-                    {/* Contact Info */}
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                         Contact Details
                       </div>
                       <div className="space-y-3">
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-center py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Phone
                           </span>
@@ -256,7 +323,7 @@ export default function TicketClient() {
                             {ticket.phone || "—"}
                           </span>
                         </div>
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-start py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Email
                           </span>
@@ -268,14 +335,14 @@ export default function TicketClient() {
                     </div>
                   </div>
 
-                  {/* Right Column */}
+                  {/* Right Column - Flight Details */}
                   <div className="space-y-6">
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                         Flight Details
                       </div>
                       <div className="space-y-3">
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-center py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Flight Number
                           </span>
@@ -283,7 +350,7 @@ export default function TicketClient() {
                             {ticket.flight_number || "6E 7138"}
                           </span>
                         </div>
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-center py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Booking Reference (PNR)
                           </span>
@@ -291,7 +358,7 @@ export default function TicketClient() {
                             {pnr}
                           </span>
                         </div>
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-center py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Class
                           </span>
@@ -299,7 +366,7 @@ export default function TicketClient() {
                             {ticket.class || "Economy"}
                           </span>
                         </div>
-                        <div className="flex justify-between py-2 border-b">
+                        <div className="flex justify-between items-center py-2 border-b">
                           <span className="text-sm text-muted-foreground">
                             Seat
                           </span>
@@ -310,13 +377,12 @@ export default function TicketClient() {
                       </div>
                     </div>
 
-                    {/* Fare */}
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
                         Fare Information
                       </div>
                       <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4 rounded-lg border-2 border-green-200 dark:border-green-800">
-                        <div className="flex justify-between mb-2">
+                        <div className="flex justify-between items-center mb-2">
                           <span className="text-sm text-muted-foreground">
                             Total Amount Paid
                           </span>
@@ -332,7 +398,7 @@ export default function TicketClient() {
                   </div>
                 </div>
 
-                {/* Barcode */}
+                {/* Barcode Section */}
                 <div className="px-8 py-8 bg-slate-50 dark:bg-slate-800">
                   <div className="text-center mb-4">
                     <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
@@ -370,22 +436,33 @@ export default function TicketClient() {
                     </li>
                     <li>• Boarding gates close 25 minutes before departure.</li>
                     <li>
-                      • Carry a valid government-issued photo ID at all
-                      checkpoints.
+                      • Carry a valid government-issued photo ID for
+                      verification at all checkpoints.
                     </li>
                     <li>
-                      • Cabin baggage: 7 kg; Check-in baggage as per class.
+                      • Cabin baggage allowance: 7 kg; Check-in baggage
+                      allowance: as per ticket class.
                     </li>
-                    <li>• Dangerous goods are not allowed onboard.</li>
-                    <li>• Schedules may change due to weather or ATC.</li>
                     <li>
-                      • Ticket is non-transferable and subject to airline rules.
+                      • Dangerous goods and restricted items are not allowed
+                      onboard.
                     </li>
-                    <li>• Contact: support@boogflight.com.</li>
+                    <li>
+                      • Flight schedules are subject to change due to weather or
+                      Air Traffic Control directives.
+                    </li>
+                    <li>
+                      • This ticket is non-transferable and subject to airline
+                      terms and conditions.
+                    </li>
+                    <li>
+                      • For assistance, contact customer support at
+                      support@boogflight.com.
+                    </li>
                   </ul>
                 </div>
 
-                {/* Important Info */}
+                {/* Important Information */}
                 <div className="px-8 py-6 bg-red-50 dark:bg-red-950/30 border-t-2 border-red-200 dark:border-red-900">
                   <div className="flex items-start gap-3">
                     <svg
@@ -405,10 +482,15 @@ export default function TicketClient() {
                       </div>
                       <ul className="text-xs text-red-800 dark:text-red-300 space-y-1">
                         <li>• Check-in opens 2-3 hours before departure</li>
-                        <li>• Carry valid government-issued ID</li>
-                        <li>• Arrive at least 2 hours early</li>
-                        <li>• Ticket is non-transferable and non-refundable</li>
-                        <li>• Subject to airline terms</li>
+                        <li>• Carry valid government-issued photo ID</li>
+                        <li>
+                          • Arrive at the airport at least 2 hours before
+                          departure
+                        </li>
+                        <li>
+                          • This ticket is non-transferable and non-refundable
+                        </li>
+                        <li>• Subject to airline terms and conditions</li>
                       </ul>
                     </div>
                   </div>
@@ -426,7 +508,7 @@ export default function TicketClient() {
             </CardContent>
           </Card>
 
-          {/* Buttons */}
+          {/* Action Buttons */}
           <div className="mt-8 flex gap-4 flex-col sm:flex-row justify-center">
             <Button
               size="lg"
@@ -448,6 +530,7 @@ export default function TicketClient() {
               </svg>
               Download E-Ticket
             </Button>
+
             <Button
               size="lg"
               variant="outline"
