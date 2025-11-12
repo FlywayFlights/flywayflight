@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/context/BookingContext";
 import { Plane } from "lucide-react";
@@ -339,9 +338,8 @@ export default function TicketClient() {
 
           {/* Buttons */}
           <div className="mt-8 flex gap-4 flex-col sm:flex-row justify-center">
-            <Button
-              size="lg"
-              className="gap-2 bg-blue-600 hover:bg-blue-700"
+            <button
+              className="font-semibold rounded-lg transition-all active:scale-95 px-6 py-3 text-lg gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center"
               onClick={handleDownload}
             >
               <svg
@@ -358,12 +356,10 @@ export default function TicketClient() {
                 />
               </svg>
               Download E-Ticket
-            </Button>
+            </button>
 
-            <Button
-              size="lg"
-              variant="outline"
-              className="gap-2"
+            <button
+              className="font-semibold rounded-lg transition-all active:scale-95 px-6 py-3 text-lg gap-2 border border-blue-500 text-blue-600 hover:bg-blue-50 flex items-center justify-center"
               onClick={() => router.push("/")}
             >
               <svg
@@ -380,7 +376,7 @@ export default function TicketClient() {
                 />
               </svg>
               Back to Home
-            </Button>
+            </button>
           </div>
         </div>
       </div>
