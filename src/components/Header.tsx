@@ -1,76 +1,83 @@
+"use client";
+
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import type { SVGProps } from "react";
-
-function PlaneIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
-    </svg>
-  );
-}
-
-function UserIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/Button";
+import { Plane } from "lucide-react";
 
 export default function Header() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 30);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="bg-primary text-primary-foreground py-6 px-4 md:px-6">
-      <div className="container mx-auto flex items-center justify-between">
-        <Link href="#" className="flex items-center gap-2" prefetch={false}>
-          <PlaneIcon className="w-6 h-6" />
-          <span className="text-lg font-bold">BoofLight</span>
+    <header
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+        isScrolled
+          ? "bg-white shadow-md text-gray-800"
+          : "bg-transparent text-white"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-5 py-4">
+        {/* Brand */}
+        <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+          <Plane className="w-6 h-6 text-blue-600" />
+          <span className={isScrolled ? "text-blue-700" : "text-white"}>
+            BoofLight
+          </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-4">
-          <Link href="#" className="hover:underline" prefetch={false}>
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <Link
+            href="#"
+            className={`hover:text-blue-600 transition-colors ${
+              isScrolled ? "text-gray-700" : "text-gray-100"
+            }`}
+          >
             Flights
           </Link>
-          <Link href="#" className="hover:underline" prefetch={false}>
+          <Link
+            href="#"
+            className={`hover:text-blue-600 transition-colors ${
+              isScrolled ? "text-gray-700" : "text-gray-100"
+            }`}
+          >
             Hotels
           </Link>
-          <Link href="#" className="hover:underline" prefetch={false}>
+          <Link
+            href="#"
+            className={`hover:text-blue-600 transition-colors ${
+              isScrolled ? "text-gray-700" : "text-gray-100"
+            }`}
+          >
             Packages
           </Link>
-          <Link href="#" className="hover:underline" prefetch={false}>
+          <Link
+            href="#"
+            className={`hover:text-blue-600 transition-colors ${
+              isScrolled ? "text-gray-700" : "text-gray-100"
+            }`}
+          >
             Deals
           </Link>
         </nav>
 
-        {/* FIXED BUTTON */}
+        {/* Sign In Button */}
         <Button
-          variant="outline"
-          className="bg-transparent border-white text-white hover:bg-white hover:text-primary"
+          variant={isScrolled ? "primary" : "outline"}
+          className={`text-sm px-5 py-2 font-semibold rounded-full transition-all ${
+            isScrolled
+              ? "bg-blue-600 text-white hover:bg-blue-700"
+              : "border border-white text-white hover:bg-white hover:text-blue-700"
+          }`}
         >
-          <UserIcon className="w-4 h-4 mr-2" />
           Sign In
         </Button>
       </div>

@@ -9,41 +9,62 @@ import {
   ReactNode,
 } from "react";
 
+// Each passenger's details
+export type Passenger = {
+  name?: string;
+  gender?: string;
+  age?: string;
+  phone?: string;
+  email?: string;
+  seat?: string;
+  class?: string;
+};
+
+// Full ticket/booking data
 export type Ticket = {
-  // flight summary fields
+  name?: string;
+  gender?: string;
+  age?: string;
+  phone?: string;
+  email?: string;
+  seat?: string;
+  class?: string;
+  // Flight details
   airline?: string;
   from?: string;
   to?: string;
   date?: string;
   time?: string;
   duration?: string;
-  price?: string;
+  price?: string; // Final total price after discount (for all passengers)
+  price_per_passenger?: string; // Price per passenger after discount
+  original_price?: string; // Total original price before discount
+  original_price_per_passenger?: string; // Original price per passenger
+  discounted_price?: string; // Display discount if needed
+  passengerCount?: number; // Number of passengers (alias for totalPassengers)
   flight_number?: string;
   stops?: number;
 
-  // passenger fields (added later)
-  name?: string;
-  gender?: string;
-  age?: string;
-  phone?: string;
-  email?: string;
-
-  // additional flight details
+  // Additional flight metadata
   arrivalDate?: string;
   arrivalTime?: string;
-  class?: string;
-  seat?: string;
 
-  // generated IDs
+  // Booking IDs
   pnr?: string;
   bookingNo?: string;
   ticketNumber?: string;
+
+  // Passenger section
+  passengers?: Passenger[];
+  totalPassengers?: number;
 };
 
 type BookingContextType = {
   ticket: Ticket | null;
   setTicket: (t: Ticket | null) => void;
   clearTicket: () => void;
+  updatePassengers: (count: number) => void;
+  updatePassengerDetails: (index: number, data: Partial<Passenger>) => void;
 };
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -51,41 +72,96 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 export function BookingProvider({ children }: { children: ReactNode }) {
   const [ticket, setTicketState] = useState<Ticket | null>(null);
 
-  // hydrate from localStorage on mount
+  // Load saved ticket from localStorage on mount
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("booflight_ticket");
-      if (raw) {
-        setTicketState(JSON.parse(raw));
+      const saved = localStorage.getItem("booflight_ticket");
+      if (saved) {
+        setTicketState(JSON.parse(saved));
       }
-    } catch (e) {
-      // ignore
+    } catch {
+      console.warn("Failed to parse saved ticket");
     }
   }, []);
 
-  // persist
+  // Save ticket to localStorage on change
   useEffect(() => {
     try {
       if (ticket)
         localStorage.setItem("booflight_ticket", JSON.stringify(ticket));
       else localStorage.removeItem("booflight_ticket");
-    } catch (e) {
-      // ignore
+    } catch {
+      console.warn("Failed to save ticket");
     }
   }, [ticket]);
 
+  // Set ticket object
   const setTicket = (t: Ticket | null) => setTicketState(t);
-  const clearTicket = () => setTicketState(null);
+
+  // Clear all booking data
+  const clearTicket = () => {
+    setTicketState(null);
+    localStorage.removeItem("booflight_ticket");
+  };
+
+  // Update total passengers dynamically
+  const updatePassengers = (count: number) => {
+    if (!ticket) return;
+
+    const current = ticket.passengers || [];
+    let updated = [...current];
+
+    // Add empty slots if new count is higher
+    if (count > current.length) {
+      for (let i = current.length; i < count; i++) {
+        updated.push({});
+      }
+    } else if (count < current.length) {
+      // Trim extra passengers
+      updated = updated.slice(0, count);
+    }
+
+    setTicketState({
+      ...ticket,
+      passengers: updated,
+      totalPassengers: count,
+    });
+  };
+
+  // Update individual passenger info
+  const updatePassengerDetails = (index: number, data: Partial<Passenger>) => {
+    if (!ticket || !ticket.passengers) return;
+
+    const updatedPassengers = [...ticket.passengers];
+    updatedPassengers[index] = {
+      ...updatedPassengers[index],
+      ...data,
+    };
+
+    setTicketState({
+      ...ticket,
+      passengers: updatedPassengers,
+    });
+  };
 
   return (
-    <BookingContext.Provider value={{ ticket, setTicket, clearTicket }}>
+    <BookingContext.Provider
+      value={{
+        ticket,
+        setTicket,
+        clearTicket,
+        updatePassengers,
+        updatePassengerDetails,
+      }}
+    >
       {children}
     </BookingContext.Provider>
   );
 }
 
+// Custom hook for easy access
 export function useBooking() {
   const ctx = useContext(BookingContext);
-  if (!ctx) throw new Error("useBooking must be used within BookingProvider");
+  if (!ctx) throw new Error("useBooking must be used within a BookingProvider");
   return ctx;
 }
