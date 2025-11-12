@@ -4,8 +4,6 @@ import {
   Search,
   Calendar,
   Users,
-  PlaneTakeoff,
-  PlaneLanding,
   ArrowRightLeft,
   Sparkles,
   Shield,
@@ -17,7 +15,7 @@ import {
 } from "lucide-react";
 import rawAirports from "@/lib/airport.json";
 import AirportInput from "@/components/AirportInput";
-import { useBooking } from "@/context/BookingContext";
+import { useBooking, type Passenger } from "@/context/BookingContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Airport {
@@ -118,10 +116,10 @@ export default function SearchSection({
         return;
       }
 
-      const passengerArray = Array.from(
+      const passengerArray: Passenger[] = Array.from(
         { length: Math.max(1, Number(passengers)) },
-        () => ({})
-      ) as unknown as any[];
+        () => ({} as Passenger)
+      );
 
       const passengerCount = Number(passengers) || 1;
       setTicket({
@@ -139,7 +137,7 @@ export default function SearchSection({
       if ((json.results || []).length === 0) {
         setError("No flights found. Try another route or date.");
       }
-    } catch (err) {
+    } catch {
       setError("Network error. Please try again later.");
       onFinish?.([], null);
     } finally {

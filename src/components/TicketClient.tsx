@@ -40,7 +40,7 @@ export default function TicketClient() {
   const isMobile = () =>
     /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isIOS = () =>
-    /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window);
 
   async function handleDownload() {
     const ticketElement = document.getElementById("ticket-section");
