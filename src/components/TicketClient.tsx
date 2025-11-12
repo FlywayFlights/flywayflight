@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/Card";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/context/BookingContext";
 import { Plane } from "lucide-react";
@@ -140,9 +139,9 @@ export default function TicketClient() {
         </div>
 
         <div className="max-w-4xl mx-auto" id="ticket-section">
-          <Card className="overflow-hidden shadow-2xl border-0">
+          <div className="bg-white/80 backdrop-blur-md border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-0">
-              <CardContent>
+              <div className="p-4">
                 {/* Airline Header */}
                 <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 text-white px-8 py-6 relative">
                   <div className="absolute inset-0 opacity-10">
@@ -334,9 +333,9 @@ export default function TicketClient() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
+              </div>
             </div>
-          </Card>
+          </div>
 
           {/* Buttons */}
           <div className="mt-8 flex gap-4 flex-col sm:flex-row justify-center">
