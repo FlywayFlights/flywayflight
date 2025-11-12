@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/Button";
 import { Plane } from "lucide-react";
 
 export default function Header() {
@@ -70,8 +69,7 @@ export default function Header() {
         </nav>
 
         {/* Sign In Button */}
-        <Button
-          variant={isScrolled ? "primary" : "outline"}
+        <button
           className={`text-sm px-5 py-2 font-semibold rounded-full transition-all ${
             isScrolled
               ? "bg-blue-600 text-white hover:bg-blue-700"
@@ -79,7 +77,7 @@ export default function Header() {
           }`}
         >
           Sign In
-        </Button>
+        </button>
       </div>
     </header>
   );
