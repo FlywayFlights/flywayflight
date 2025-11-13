@@ -8,8 +8,8 @@ module.exports = {
     "postcss-preset-env": {
       stage: 1,
       features: {
-        "color-function": true,
-        "oklab-function": true,
+        "color-function": false,
+        "oklab-function": false,
       },
     },
   },

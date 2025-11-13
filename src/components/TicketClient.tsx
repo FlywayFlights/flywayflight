@@ -2,10 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/context/BookingContext";
-import { Plane } from "lucide-react";
+import { Plane, Clock, Shield, Luggage, AlertCircle, Phone, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { downloadTicketPDF } from "@/lib/downloadTicketPDF";
 
 export default function TicketClient() {
   const router = useRouter();
@@ -35,60 +34,8 @@ export default function TicketClient() {
     setTicketNumber(ticket?.ticketNumber || generateTicketNumber());
   }, [ticket]);
 
-  const isMobile = () =>
-    /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isIOS = () =>
-    /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window);
-
   async function handleDownload() {
-    const ticketElement = document.getElementById("ticket-section");
-    if (!ticketElement) return;
-
-    if (!isMobile()) {
-      window.print();
-      return;
-    }
-
-    try {
-      const canvas = await html2canvas(ticketElement, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-        compress: true,
-      });
-
-      const margin = 10;
-      const pdfWidth = pdf.internal.pageSize.getWidth() - 2 * margin;
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", margin, margin, pdfWidth, pdfHeight);
-
-      const blob = pdf.output("blob");
-      const blobUrl = URL.createObjectURL(blob);
-
-      if (isIOS()) {
-        window.open(blobUrl, "_blank");
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 20000);
-        return;
-      }
-
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = "BoogFlight-Eticket.pdf";
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-    } catch (error) {
-      console.error(error);
-      window.print();
-    }
+    await downloadTicketPDF();
   }
 
   if (!ticket) {
@@ -180,9 +127,14 @@ export default function TicketClient() {
                       <div className="text-4xl font-bold mb-1">
                         {safeTicket.from || "DEL"}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground mb-1">
                         {safeTicket.date || "—"}
                       </div>
+                      {safeTicket.time && (
+                        <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                          {safeTicket.time}
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 flex flex-col items-center">
                       <div className="w-full flex items-center justify-center gap-2 mb-2">
@@ -208,9 +160,14 @@ export default function TicketClient() {
                       <div className="text-4xl font-bold mb-1">
                         {safeTicket.to || "BOM"}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground mb-1">
                         {safeTicket.arrivalDate || safeTicket.date || "—"}
                       </div>
+                      {safeTicket.arrivalTime && (
+                        <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                          {safeTicket.arrivalTime}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -328,6 +285,158 @@ export default function TicketClient() {
                         <span className="font-semibold">
                           {passengerCount}
                         </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Flight Guidelines */}
+                <div className="px-8 py-8 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-slate-800 dark:to-slate-900 border-b">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 mb-6 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Important Flight Guidelines & Information
+                  </h3>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Check-in Information */}
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Check-in Information</h4>
+                      </div>
+                      <ul className="space-y-2 text-xs text-gray-700 dark:text-gray-300">
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                          <span>Online check-in opens 48 hours before departure and closes 2 hours before flight time</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                          <span>Airport check-in counters close 60 minutes before scheduled departure</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                          <span>Arrive at the airport at least 2 hours before domestic flights</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                          <span>Gate closes 20 minutes before departure - late passengers will not be accommodated</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Baggage Information */}
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Luggage className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Baggage Allowance</h4>
+                      </div>
+                      <ul className="space-y-2 text-xs text-gray-700 dark:text-gray-300">
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600 dark:text-green-400 mt-1">•</span>
+                          <span><strong>Hand Baggage:</strong> 1 piece, max 7 kg (15 lbs), dimensions 115 cm (L+W+H)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600 dark:text-green-400 mt-1">•</span>
+                          <span><strong>Checked Baggage:</strong> As per fare type (15-20 kg for Economy)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600 dark:text-green-400 mt-1">•</span>
+                          <span>Excess baggage charges apply at ₹500-800 per kg</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600 dark:text-green-400 mt-1">•</span>
+                          <span>Prohibited items: Liquids over 100ml, sharp objects, flammable materials</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Security Guidelines */}
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Security Guidelines</h4>
+                      </div>
+                      <ul className="space-y-2 text-xs text-gray-700 dark:text-gray-300">
+                        <li className="flex items-start gap-2">
+                          <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                          <span>Valid government-issued photo ID required (Aadhaar, Passport, Driving License)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                          <span>Liquids in carry-on must be in containers of 100ml or less, in a clear resealable bag</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                          <span>Remove laptops, tablets, and large electronics for separate screening</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-purple-600 dark:text-purple-400 mt-1">•</span>
+                          <span>No weapons, tools, or sharp objects in carry-on baggage</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Boarding & Travel Tips */}
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Plane className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                        <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Boarding & Travel Tips</h4>
+                      </div>
+                      <ul className="space-y-2 text-xs text-gray-700 dark:text-gray-300">
+                        <li className="flex items-start gap-2">
+                          <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
+                          <span>Boarding begins 40 minutes before departure - listen for announcements</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
+                          <span>Keep your boarding pass and ID ready at all times</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
+                          <span>Seat numbers will be assigned at check-in if not pre-selected</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
+                          <span>Flight delays or cancellations will be notified via SMS/Email</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Important Reminders */}
+                  <div className="mt-6 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm text-red-800 dark:text-red-300 mb-2">Important Reminders</h4>
+                        <ul className="space-y-1 text-xs text-red-700 dark:text-red-400">
+                          <li>• This is an electronic ticket - no physical ticket required. Present valid ID at check-in.</li>
+                          <li>• Name changes are not permitted. Ensure all passenger names match exactly as per government ID.</li>
+                          <li>• Cancellation and refund policies vary by fare type. Check terms at time of booking.</li>
+                          <li>• Web check-in is mandatory for all passengers. Complete it 48 hours to 2 hours before departure.</li>
+                          <li>• In case of flight cancellation, you will be rebooked on the next available flight or receive a full refund.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Customer Support */}
+                  <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-semibold text-sm text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Need Assistance?
+                    </h4>
+                    <div className="grid sm:grid-cols-2 gap-4 text-xs text-blue-700 dark:text-blue-400">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        <span><strong>24/7 Helpline:</strong> +91-1800-XXX-XXXX</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        <span><strong>Email:</strong> support@booflight.com</span>
+                      </div>
+                      <div className="sm:col-span-2 text-xs text-blue-600 dark:text-blue-500">
+                        For flight status, cancellations, or booking modifications, contact our customer service team.
                       </div>
                     </div>
                   </div>
