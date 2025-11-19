@@ -2,8 +2,18 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
+function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  ) || (typeof window !== 'undefined' && window.innerWidth < 768);
+}
+
 function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !('MSStream' in window);
+}
+
+function isSafari() {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 }
 
 // Check if color string contains unsupported color functions
@@ -191,45 +201,80 @@ function createCleanElementWithInlineStyles(element: HTMLElement): HTMLElement {
   return cleanCopy;
 }
 
-export async function downloadTicketPDF() {
+export async function downloadTicketPDF(): Promise<void> {
   const ticketElement = document.getElementById("ticket-section");
   if (!ticketElement) {
-    console.error("Ticket element not found");
-    return;
+    throw new Error("Ticket element not found");
   }
 
+  const mobile = isMobile();
+  const scale = mobile ? 1.5 : 2; // Lower scale for mobile to improve performance
+  
   let canvas: HTMLCanvasElement;
   let cleanElement: HTMLElement | null = null;
 
   try {
-    // Ensure element is in viewport
+    // Ensure element is visible and in viewport
     ticketElement.scrollIntoView({ behavior: 'instant', block: 'start' });
     
-    // Wait a moment for any animations/transitions
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Use requestAnimationFrame for better performance
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => setTimeout(resolve, 50));
     
     // Create a clean copy with only inline styles (no stylesheets to parse)
     cleanElement = createCleanElementWithInlineStyles(ticketElement);
-    cleanElement.id = 'ticket-section-clean';
+    cleanElement.id = 'ticket-section-clean-' + Date.now();
     cleanElement.style.position = 'absolute';
     cleanElement.style.left = '-9999px';
     cleanElement.style.top = '0';
     cleanElement.style.zIndex = '-9999';
+    cleanElement.style.width = ticketElement.offsetWidth + 'px';
     document.body.appendChild(cleanElement);
     
-    // Wait a moment for DOM to update
-    await new Promise(resolve => setTimeout(resolve, 50));
+    // Wait for DOM to update using requestAnimationFrame
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => requestAnimationFrame(resolve));
     
-    // Use clean element with no stylesheets
-    canvas = await html2canvas(cleanElement, {
-      scale: 2,
+    // Optimize html2canvas options for performance
+    const canvasOptions = {
+      scale: scale,
       useCORS: true,
       backgroundColor: "#ffffff",
       logging: false,
-      allowTaint: true,
+      allowTaint: false, // Changed to false for better compatibility
       foreignObjectRendering: false,
       removeContainer: true,
+      windowWidth: cleanElement.scrollWidth,
+      windowHeight: cleanElement.scrollHeight,
+      onclone: (clonedDoc: Document) => {
+        // Remove problematic stylesheets
+        try {
+          const styleSheets = Array.from(clonedDoc.styleSheets);
+          styleSheets.forEach((sheet) => {
+            try {
+              if (sheet.ownerNode && sheet.ownerNode.parentNode) {
+                sheet.ownerNode.parentNode.removeChild(sheet.ownerNode);
+              }
+            } catch {
+              // Ignore errors
+            }
+          });
+        } catch {
+          // Ignore errors
+        }
+        
+        // Fix colors in cloned document
+        fixCSSColors(clonedDoc);
+      },
+    };
+    
+    // Set timeout for canvas generation (30 seconds)
+    const canvasPromise = html2canvas(cleanElement, canvasOptions);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("PDF generation timed out")), 30000);
     });
+    
+    canvas = await Promise.race([canvasPromise, timeoutPromise]);
     
     // Verify canvas has content
     if (!canvas || canvas.width === 0 || canvas.height === 0) {
@@ -238,60 +283,59 @@ export async function downloadTicketPDF() {
   } catch (error: unknown) {
     console.error("PDF generation error:", error);
     
-    // If error is about colors, try one more time with even more aggressive cleanup
+    // Clean up on error
+    if (cleanElement && cleanElement.parentNode) {
+      cleanElement.parentNode.removeChild(cleanElement);
+    }
+    
+    // Try fallback: use original element with simpler options
     const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('color') || errorMessage.includes('lab') || errorMessage.includes('oklab')) {
+    if (errorMessage.includes('timeout') || errorMessage.includes('Canvas')) {
       try {
-        // Remove clean element and try again with original but remove all stylesheets in onclone
-        if (cleanElement && cleanElement.parentNode) {
-          cleanElement.parentNode.removeChild(cleanElement);
-        }
-        
+        // Fallback: simpler approach with original element
         canvas = await html2canvas(ticketElement, {
-          scale: 2,
+          scale: mobile ? 1 : 1.5,
           useCORS: true,
           backgroundColor: "#ffffff",
           logging: false,
-          allowTaint: true,
+          allowTaint: false,
           foreignObjectRendering: false,
-          onclone: (clonedDoc) => {
-            // Remove ALL stylesheets to prevent color parsing
-            try {
-              const styleSheets = Array.from(clonedDoc.styleSheets);
-              styleSheets.forEach((sheet) => {
-                try {
-                  if (sheet.ownerNode) {
-                    sheet.ownerNode.parentNode?.removeChild(sheet.ownerNode);
-                  }
-                } catch {
-                  // Ignore
-                }
-              });
-            } catch {
-              // Ignore
-            }
-            
-            // Apply all styles as inline
-            fixCSSColors(clonedDoc);
-          },
         });
-      } catch (retryError) {
-        alert("Failed to generate PDF. Please try again.");
-        throw retryError;
+        
+        if (!canvas || canvas.width === 0 || canvas.height === 0) {
+          throw new Error("Fallback canvas generation failed");
+        }
+      } catch (fallbackError) {
+        throw new Error("Failed to generate PDF. Please try again or contact support.");
       }
     } else {
-      alert("Failed to generate PDF. Please try again.");
       throw error;
     }
   } finally {
     // Clean up
     if (cleanElement && cleanElement.parentNode) {
-      cleanElement.parentNode.removeChild(cleanElement);
+      try {
+        cleanElement.parentNode.removeChild(cleanElement);
+      } catch {
+        // Ignore cleanup errors
+      }
     }
   }
 
   try {
-    const imgData = canvas.toDataURL("image/png");
+    // Convert canvas to image with error handling
+    let imgData: string;
+    try {
+      imgData = canvas.toDataURL("image/png");
+    } catch (dataError) {
+      // Fallback: try with JPEG (PNG might fail on some mobile browsers)
+      try {
+        imgData = canvas.toDataURL("image/jpeg", 0.9);
+      } catch (jpegError) {
+        throw new Error("Failed to convert canvas to image");
+      }
+    }
+
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -307,34 +351,77 @@ export async function downloadTicketPDF() {
 
     // If content fits on one page, add it directly
     if (pdfHeight <= maxHeight) {
-      pdf.addImage(imgData, "PNG", margin, margin, pdfWidth, pdfHeight, undefined, "FAST");
+      pdf.addImage(imgData, imgData.includes("data:image/png") ? "PNG" : "JPEG", margin, margin, pdfWidth, pdfHeight, undefined, "FAST");
     } else {
       // Scale down to fit on one page
       const scale = maxHeight / pdfHeight;
       const scaledWidth = pdfWidth * scale;
       const scaledHeight = maxHeight;
       const xOffset = (pdfWidth - scaledWidth) / 2 + margin;
-      pdf.addImage(imgData, "PNG", xOffset, margin, scaledWidth, scaledHeight, undefined, "FAST");
+      pdf.addImage(imgData, imgData.includes("data:image/png") ? "PNG" : "JPEG", xOffset, margin, scaledWidth, scaledHeight, undefined, "FAST");
     }
 
+    // Generate blob
     const blob = pdf.output("blob");
     const blobUrl = URL.createObjectURL(blob);
+    const fileName = "BoogFlight-Eticket.pdf";
 
-    if (isIOS()) {
-      window.open(blobUrl, "_blank");
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 20000);
-      return;
+    // Handle download based on device/browser
+    if (isIOS() || (isSafari() && mobile)) {
+      // iOS/Safari mobile: open in new tab
+      const newWindow = window.open(blobUrl, "_blank");
+      if (newWindow) {
+        // Try to trigger download after a short delay
+        setTimeout(() => {
+          try {
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = fileName;
+            link.style.display = "none";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          } catch {
+            // If download fails, user can use the opened tab
+          }
+        }, 100);
+      }
+      // Clean up after longer delay for mobile
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } else {
+      // Desktop and Android: use download attribute
+      try {
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = fileName;
+        link.style.display = "none";
+        
+        // Add to DOM temporarily
+        document.body.appendChild(link);
+        
+        // Trigger download
+        link.click();
+        
+        // Remove from DOM after a short delay
+        setTimeout(() => {
+          try {
+            document.body.removeChild(link);
+          } catch {
+            // Ignore if already removed
+          }
+        }, 100);
+        
+        // Clean up blob URL after download
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } catch (downloadError) {
+        // Fallback: open in new window
+        console.error("Download failed, opening in new window:", downloadError);
+        window.open(blobUrl, "_blank");
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+      }
     }
-
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = "BoogFlight-Eticket.pdf";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
   } catch (error) {
     console.error("PDF download failed", error);
-    alert("Failed to download PDF. Please try again.");
+    throw new Error("Failed to download PDF. Please try again.");
   }
 }

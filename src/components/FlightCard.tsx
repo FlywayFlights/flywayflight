@@ -21,13 +21,13 @@ export default function FlightCard({ flight }: FlightCardProps) {
   // Get passenger count from booking context
   const passengerCount = ticket?.totalPassengers || ticket?.passengerCount || Number(ticket?.passengers?.length) || 1;
 
-  // Calculate per-passenger prices
-  const originalPricePerPassenger =
-    Number((flight.price ?? "0").replace(/[^\d]/g, "")) || 0;
+  // flight.price from API is the total price for all passengers
+  // Calculate per-passenger prices by dividing the total by passenger count
+  const originalPriceTotal = Number((flight.price ?? "0").replace(/[^\d]/g, "")) || 0;
+  const originalPricePerPassenger = passengerCount > 0 ? Math.round(originalPriceTotal / passengerCount) : originalPriceTotal;
   const discountedPricePerPassenger = Math.round(originalPricePerPassenger * 0.88);
   
   // Calculate total prices for all passengers
-  const originalPriceTotal = originalPricePerPassenger * passengerCount;
   const discountedPriceTotal = discountedPricePerPassenger * passengerCount;
   
   const formattedOriginalPerPassenger = `₹${originalPricePerPassenger.toLocaleString()}`;
